@@ -1,0 +1,612 @@
+/*
+Gramatica para el Robot:
+Autor: Alejandro Arango
+Modificado por: Silvia Takahashi
+Modificado por: Juan Pablo Morales.
+Agregadas producciones para manejar globos
+Modificado por Silvia Takahashi
+
+
+ **/
+
+
+options 
+{
+  
+	LOOKAHEAD=1; 
+	IGNORE_CASE=true;
+	STATIC = false;
+	
+}
+   
+
+PARSER_BEGIN(Robot)
+
+package uniandes.lym.robot.control;
+
+import uniandes.lym.robot.kernel.*;
+import uniandes.lym.robot.view.Console;
+
+import java.util.HashMap;
+import java.awt.Point;
+import java.io.*;
+import java.util.Vector;
+import java.util.LinkedList;
+
+@SuppressWarnings("serial")
+public class Robot 
+{
+
+
+	private RobotWorldDec world;
+	
+	
+	void setWorld(RobotWorld w) {
+		world = (RobotWorldDec) w;	
+	}
+
+	String salida=new String();
+}
+PARSER_END(Robot)
+
+SKIP:
+{
+	" "
+	|	"\r"
+	|	"\t"
+	| "\n"
+}
+
+TOKEN: /* Nombres de Comandos */
+{
+
+< turnToMy : "turnToMy" >
+| < turnToThe : "turnToThe" >
+| < walk: "walk" >
+| < jump : "jump" >
+| < drop : "drop" >
+| < pick: "pick" >
+| < grab : "grab">
+| < letGo:"letGo" >
+| < IGUAL:"=">
+| < NEW: "NEW" >
+| < repeat: "repeat">
+| <If:"if" >
+| <then: "then" >
+| <Else: "else" >
+| <not: "not" >
+| <isBlocked: "isBlocked?" >
+| <isFacing: "isFacing?" >
+| < zero: "zero?">
+| <pop:"pop" >
+| <moves:"moves" >
+| <safeExe:"safeExe" >
+| 	<MOV:  "Mov">
+| 	<RIGHT: "RIGHT">
+| 	<PUT: "Put">
+| 	<PICK: "Pick">
+|  < POP: "Pop" >
+|  <GO: "GO" >
+|  < HOP:  "HOP" >		
+
+}
+
+TOKEN:
+{
+		<BALLOONS:  "BALLOONS" >
+		|	<CHIPS:     "CHIPS"  >	
+
+}
+
+
+
+TOKEN :
+{
+		< CONSTANT : (< DIGIT >)+ >
+| < #DIGIT : [ "0"-"9" ] >
+| <ID :(<LETTER>)+ >
+| < #LETTER : ["A"-"z"] >
+| <VALUE: "size"|"myX" |"myY"| " myChips" |"myBalloons"|"balloonsHere"|"chipsHere"| "roomForChips"|(<DIGIT>)+ >
+| <VARIABLE: (<LETTER>)+ ("," (<LETTER>)+ )*>
+}
+
+}
+        
+}
+
+void one_line() :
+{
+	HashMap<String, String> variablesDeclaradas = new HashMap<>();
+
+  }
+{
+ (
+"NEW VAR"
+NEW_VAR()
+|"EXEC"
+"{"
+EXEC()
+"}"
+|"NEW MACRO"
+NEW_MACRO()
+)*
+}
+
+void NEW_VAR() :
+{}
+{
+  < NEW >
+  < ID >
+  {
+	String nombreVariable = token.image;
+	variablesDeclaradas.put(nombreVariable,"");
+
+
+
+   }catch(Exception e) {}
+  }
+  < IGUAL >
+  < VALUE >
+  {
+	  	String valorVariable= (token.image);
+		variablesDeclaradas.put(nombreVariable,valorVariable);
+	} {}
+}
+
+void EXEC() :
+{}
+{
+ (
+   CONDITIONAL()
+|COMMAND()";" 
+   )+
+}
+
+void NEW_MACRO():
+{} {
+< ID >
+"("
+(
+< VARIABLE >
+{
+ String valorVariable = token.image;
+    String[] variablesMacro = valorVariable.split(",");
+    for (int i = 0; i < variablesMacro.length; i++) {
+        String posicion = variablesMacro[i].trim(); // Trim any extra spaces
+
+        try {
+            int number = Integer.parseInt(posicion); // Try to parse it as a number
+        } catch (NumberFormatException e) {
+            // If it's not a number, check if it's a declared variable
+            if (variablesDeclaradas.get(posicion) == null) {
+                throw new Exception("Variable no existe: " + posicion);
+
+  }
+  }
+
+}
+)
+"{"
+BLOCK()
+"}"
+
+  }
+
+void BLOCK():
+{}
+{
+(
+COMMAND()";"
+| CONDITIONAL()
+| LOOP()
+| RepeatTimes()
+)+
+}
+
+void COMMAND() :
+{}
+{
+TurnToMy()
+| TurnToThe()
+| walk()";"
+| jump()";"
+| drop()";"
+| pick()";"
+| grab()";"
+| letGo()";"
+| pop()";"
+| moves()";"
+| "nop;"
+| safeExec()";"
+}
+
+
+
+//Commands
+void TurnToMy():
+{}
+{
+< turnToMy >
+"("
+(
+"left"
+|"right"
+| "back"
+)
+")"
+}
+
+void TurnToThe():
+{}
+{
+< turnToThe >
+"("
+(
+"north"
+| "south"
+| "east"
+| "west"
+)
+")"
+}
+
+void walk():
+{}
+{
+< walk >
+"("
+(
+ < VALUE >
+| < ID >
+{
+String variable=token.image; 
+if(variablesDeclaradas.get(variable)== null) {
+	throw new Exception("Variable no existe")
+  }
+	
+  }
+)
+")"
+}
+
+void jump():
+{}
+{
+< jump  >
+"("
+(
+ < VALUE >
+| < ID >
+{
+String variable=token.image; 
+if(variablesDeclaradas.get(variable)== null) {
+	throw new Exception("Variable no existe")
+  }
+	
+  }
+)
+
+void drop():
+{}
+{
+< drop >
+"("
+(
+ < VALUE >
+| < ID >
+{
+String variable=token.image; 
+if(variablesDeclaradas.get(variable)== null) {
+	throw new Exception("Variable no existe")
+  }
+	
+  }
+)
+")"
+}
+void pick():
+{}
+{
+< pick >
+"("
+(
+ < VALUE >
+| < ID >
+{
+String variable=token.image; 
+if(variablesDeclaradas.get(variable)== null) {
+	throw new Exception("Variable no existe")
+  }
+	
+  }
+)
+")"
+}
+
+void grab():
+{}
+{
+< grab >
+"("
+(
+ < VALUE >
+| < ID >
+{
+String variable=token.image; 
+if(variablesDeclaradas.get(variable)== null) {
+	throw new Exception("Variable no existe")
+  }
+	
+  }
+)
+")"
+}
+
+void letGo():
+{}
+{
+< letGo >
+"("
+(
+ < VALUE >
+| < ID >
+{
+String variable=token.image; 
+if(variablesDeclaradas.get(variable)== null) {
+	throw new Exception("Variable no existe")
+  }
+	
+  }
+)
+")"
+}
+
+void pop():
+{}
+{
+< pop >
+"("
+(
+ < VALUE >
+| < ID >
+{
+String variable=token.image; 
+if(variablesDeclaradas.get(variable)== null) {
+	throw new Exception("Variable no existe")
+  }
+	
+  }
+)
+")"
+}
+
+void moves():
+{}
+{
+< moves >
+" ("
+(
+  "forward," 
+| "backward,"
+| "right,"
+| "left,"
+)+
+")"
+}
+
+void safeExec():
+{}
+{
+(
+walk()
+| jump()
+| drop()
+| pick()
+| grab()
+| letGo()
+| pop()
+)+
+}
+
+//CONTROL STRUCTURES
+void LOOP():
+{}
+{
+"do"
+"("
+CONDITION()
+")"
+BLOCK()
+}
+
+
+void RepeatTimes():
+{}
+{
+"rep"
+(
+ < VALUE >
+| < ID >
+{
+String variable=token.image; 
+if(variablesDeclaradas.get(variable)== null) {
+	throw new Exception("Variable no existe")
+  }
+	
+  }
+)
+"times"
+BLOCK()
+
+
+
+}
+
+
+
+//Conditionals
+void CONDITIONAL() :
+{}
+{
+< If >
+CONDITION()
+"then"
+"{"
+(
+  COMMAND()
+";"
+  )+
+"}" 
+"then"
+"{"
+(
+ COMMAND()
+";"
+ )+
+"}"
+"fi;"
+}
+
+void CONDITION() :
+{}
+{
+ (< not >"(")?
+ (
+   isFacing()
+ | isBlocked()
+ | zero()
+)  
+ (
+   ")"
+ )?
+}
+
+
+
+//Conditions
+void isBlocked():
+{}{
+<isBlocked>
+"("
+(
+"left"
+|"right"
+|"front"
+|"back"
+)
+")"
+
+}
+void isFacing():
+{}{
+<isFacing>
+"("
+(
+"north"
+|"south"
+| "east"
+| "west"
+)
+")"
+
+}
+void zero():
+{}{
+<zero>
+"("
+(
+<CONSTANT >
+| < ID >
+)
+")"
+
+}
+
+
+
+
+
+
+	//boolean command(uniandes.lym.robot.view.Console sistema) :
+	boolean command(Console sistema):
+	{	
+		
+		int x,y;
+		salida=new String();	
+	}
+
+	
+	{
+		(		  (
+		   <RIGHT> "(" ")" {world.turnRight();salida = "Command: Turnright";}
+		| 	<MOV>  "(" x=num() ")" {world.moveForward(x,false);salida = "Command: Moveforward ";}  
+		| 	<HOP>  "(" x=num() ")" {world.moveForward(x,true);salida = "Command:Jumpforward ";}
+		| 	<GO>  "(" x=num() "," y=num()")" {world.setPostion(x,y);salida = "Command:GO ";}  
+		|  <PUT> "("  put() ")"					  			
+		|  <PICK> "(" get()  ")"	
+	    |  < POP > "(" x=num() ")" {world.popBalloons(x); salida = "Comando:  Pop";}
+		) ";" 
+
+		{
+		    try {
+	    			 Thread.sleep(900);
+	    	    } catch (InterruptedException e) {
+	    			        System.err.format("IOException: %s%n", e);
+	    		    }
+	    			 
+			sistema.printOutput(salida);
+			return true;
+		})+
+
+    	| <EOF> {return false;} 
+	}
+
+	void put() :
+	{
+		int f=1;	
+	}
+	{
+		( <CHIPS>    "," f=num() {world.putChips(f); salida = "Command:  Put Chips"; })
+		|  	  ( <BALLOONS>   "," f=num() {world.putBalloons(f); salida = "Command:  Put Balloons";})	 
+
+	}
+
+	void get() :
+	{
+		int f=1;	
+	}
+	{
+		( <CHIPS>   "," f=num() {world.pickChips(f);salida = "Command:  Pick chips";})
+		|  	  ( <BALLOONS>   "," f=num() {world.grabBalloons(f);salida="Command:  Pick balloons";})	 
+
+	}
+
+	
+	
+
+	/**
+	 * Unsigned decimal number
+	 * @return the corresponding value of the string
+	 * @error  corresponding value is too large
+	 */
+
+	int num() throws Error:
+	{	
+		int total=1;
+	}
+	{
+		<NUM>
+		{
+			try 
+			{
+				total = Integer.parseInt(token.image);
+			} 
+			catch (NumberFormatException ee) 
+			{
+				throw new Error("Number out of bounds: "+token.image+" !!");
+			}
+			return total;
+		}
+	}
+
+	
